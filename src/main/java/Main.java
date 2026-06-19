@@ -11,7 +11,7 @@ public class Main {
             if (command.equals("exit")) break;
             else if (command.equals("echo")){
                 String line = sc.nextLine();
-                System.out.println(line);
+                System.out.println(line.strip());
             }
             else {
                 System.out.println(command + ": command not found");
