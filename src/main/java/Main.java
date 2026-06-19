@@ -6,10 +6,12 @@ public class Main {
 
         while (true) {
             System.out.print("$ ");
-            String command = sc.nextLine();
+            String command = sc.next()
+
             if (command.equals("exit")) break;
             else if (command.equals("echo")){
-                System.out.println();
+                String line = sc.nextLine();
+                System.out.println(line);
             }
             else {
                 System.out.println(command + ": command not found");
