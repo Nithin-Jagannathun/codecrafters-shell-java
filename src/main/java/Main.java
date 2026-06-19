@@ -6,7 +6,7 @@ public class Main {
 
         while (true) {
             System.out.print("$ ");
-            String command = sc.next()
+            String command = sc.next();
 
             if (command.equals("exit")) break;
             else if (command.equals("echo")){
