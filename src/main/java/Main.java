@@ -119,6 +119,15 @@ public class Main {
                 tokens.add(current.toString());
 
             String[] parts = tokens.toArray(new String[0]);
+
+            int redirectIndex = -1;
+
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].equals(">") || parts[i].equals("1>")) {
+                    redirectIndex = i;
+                    break;
+                }
+            }
             // exit
             if (parts[0].equals("exit")) {
                 break;
@@ -127,11 +136,20 @@ public class Main {
             // echo
             else if (parts[0].equals("echo")) {
 
-                for (int i = 1; i < parts.length; i++) {
-                    if (i > 1) System.out.print(" ");
-                    System.out.print(parts[i]);
+                PrintStream out = System.out;
+
+                if (redirectIndex != -1) {
+                    out = new PrintStream(new FileOutputStream(parts[redirectIndex + 1]));
                 }
-                System.out.println();
+
+                for (int i = 1; i < (redirectIndex == -1 ? parts.length : redirectIndex); i++) {
+                    if (i > 1) out.print(" ");
+                    out.print(parts[i]);
+                }
+
+                out.println();
+
+                if (out != System.out) out.close();
 
             }
 
@@ -196,11 +214,23 @@ public class Main {
                     System.out.println(parts[0] + ": command not found");
                 }
                 else {
-                    List<String> cmd = new ArrayList<>(Arrays.asList(parts));
+
+                    List<String> cmd = new ArrayList<>();
+
+                    int end = redirectIndex == -1 ? parts.length : redirectIndex;
+
+                    for (int i = 0; i < end; i++)
+                        cmd.add(parts[i]);
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
-                    pb.inheritIO();
+
+                    if (redirectIndex != -1) {
+                        pb.redirectOutput(new File(parts[redirectIndex + 1]));
+                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                    } else {
+                        pb.inheritIO();
+                    }
 
                     Process process = pb.start();
                     process.waitFor();
