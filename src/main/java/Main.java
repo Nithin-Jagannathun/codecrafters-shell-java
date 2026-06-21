@@ -123,7 +123,9 @@ public class Main {
             int stdoutRedirect = -1;
             int stderrRedirect = -1;
             boolean appendStdout = false;
+            boolean appendStderr = false;
 
+            // Added parsing for 2>> operator
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     stdoutRedirect = i;
@@ -133,6 +135,10 @@ public class Main {
                     appendStdout = true;
                 } else if (parts[i].equals("2>")) {
                     stderrRedirect = i;
+                    appendStderr = false;
+                } else if (parts[i].equals("2>>")) {
+                    stderrRedirect = i;
+                    appendStderr = true;
                 }
             }
 
@@ -159,14 +165,14 @@ public class Main {
                 if (stdoutRedirect != -1) {
                     File outFile = new File(parts[stdoutRedirect + 1]);
                     if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
-                    // Pass the appendStdout flag to FileOutputStream
                     out = new PrintStream(new FileOutputStream(outFile, appendStdout));
                 }
 
                 if (stderrRedirect != -1) {
                     File errFile = new File(parts[stderrRedirect + 1]);
                     if (errFile.getParentFile() != null) errFile.getParentFile().mkdirs();
-                    new FileOutputStream(errFile).close(); 
+                    // Respect the appendStderr flag when testing/truncating errors file
+                    new FileOutputStream(errFile, appendStderr).close(); 
                 }
 
                 for (int i = 1; i < end; i++) {
@@ -257,7 +263,6 @@ public class Main {
                         File outFile = new File(parts[stdoutRedirect + 1]);
                         if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
                         
-                        // Handle standard output appending vs overwriting
                         if (appendStdout) {
                             pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
                         } else {
@@ -267,10 +272,16 @@ public class Main {
                         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
 
+                    // Added append/overwrite logic for ProcessBuilder error stream
                     if (stderrRedirect != -1) {
                         File errFile = new File(parts[stderrRedirect + 1]);
                         if (errFile.getParentFile() != null) errFile.getParentFile().mkdirs();
-                        pb.redirectError(errFile);
+                        
+                        if (appendStderr) {
+                            pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
+                        } else {
+                            pb.redirectError(errFile);
+                        }
                     } else {
                         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     }
