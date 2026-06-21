@@ -49,25 +49,63 @@ public class Main {
             for (int i = 0; i < command.length(); i++) {
                 char c = command.charAt(i);
 
-                // Backslash escaping (outside quotes only)
-                if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
+                // Inside single quotes: everything is literal
+                if (inSingleQuote) {
+                    if (c == '\'') {
+                        inSingleQuote = false;
+                    } else {
+                        current.append(c);
+                    }
+                    continue;
+                }
+
+                // Inside double quotes
+                if (inDoubleQuote) {
+
+                    if (c == '\\') {
+                        if (i + 1 < command.length()) {
+                            char next = command.charAt(i + 1);
+
+                            if (next == '"' || next == '\\') {
+                                current.append(next);
+                                i++;
+                            } else {
+                                current.append('\\');
+                            }
+                        } else {
+                            current.append('\\');
+                        }
+                        continue;
+                    }
+
+                    if (c == '"') {
+                        inDoubleQuote = false;
+                        continue;
+                    }
+
+                    current.append(c);
+                    continue;
+                }
+
+                // Outside quotes
+                if (c == '\\') {
                     if (i + 1 < command.length()) {
                         current.append(command.charAt(++i));
                     }
                     continue;
                 }
 
-                if (c == '\'' && !inDoubleQuote) {
-                    inSingleQuote = !inSingleQuote;
+                if (c == '\'') {
+                    inSingleQuote = true;
                     continue;
                 }
 
-                if (c == '"' && !inSingleQuote) {
-                    inDoubleQuote = !inDoubleQuote;
+                if (c == '"') {
+                    inDoubleQuote = true;
                     continue;
                 }
 
-                if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
+                if (c == ' ') {
                     if (current.length() > 0) {
                         tokens.add(current.toString());
                         current.setLength(0);
@@ -77,9 +115,8 @@ public class Main {
                 }
             }
 
-            if (current.length() > 0) {
+            if (current.length() > 0)
                 tokens.add(current.toString());
-            }
 
             String[] parts = tokens.toArray(new String[0]);
             // exit
