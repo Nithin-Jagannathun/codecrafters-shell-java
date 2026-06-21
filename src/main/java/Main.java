@@ -21,12 +21,14 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         Scanner sc = new Scanner(System.in);
+        File currentDirectory = new File(System.getProperty("user.dir"));
 
         HashSet<String> builtins = new HashSet<>();
         builtins.add("exit");
         builtins.add("echo");
         builtins.add("type");
         builtins.add("pwd");
+        builtins.add("cd");
 
         while (true) {
 
@@ -58,7 +60,21 @@ public class Main {
 
             // pwd
             else if (parts[0].equals("pwd")) {
-                System.out.println(System.getProperty("user.dir"));
+                System.out.println(currentDirectory.getCanonicalPath());
+            }
+
+            // cd
+            else if (parts[0].equals("cd")) {
+                if (parts.length < 2) continue;
+
+                File newDir = new File(parts[1]);
+
+                if (newDir.exists() && newDir.isDirectory()) {
+                    currentDirectory = newDir.getCanonicalFile();
+                }
+                else {
+                    System.out.println("cd: " + parts[1] + ": No such file or directory");
+                }
             }
 
             // type
@@ -102,7 +118,7 @@ public class Main {
                     }
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
-                    pb.directory(executable.getParentFile());
+                    pb.directory(currentDirectory);
                     pb.inheritIO();
 
                     Process process = pb.start();
