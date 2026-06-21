@@ -26,6 +26,7 @@ public class Main {
         builtins.add("exit");
         builtins.add("echo");
         builtins.add("type");
+        builtins.add("pwd");
 
         while (true) {
 
@@ -53,6 +54,11 @@ public class Main {
                     System.out.println();
                 }
 
+            }
+
+            // pwd
+            else if (parts[0].equals("pwd")) {
+                System.out.println(System.getProperty("user.dir"));
             }
 
             // type
