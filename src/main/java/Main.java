@@ -49,6 +49,14 @@ public class Main {
             for (int i = 0; i < command.length(); i++) {
                 char c = command.charAt(i);
 
+                // Backslash escaping (outside quotes only)
+                if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
+                    if (i + 1 < command.length()) {
+                        current.append(command.charAt(++i));
+                    }
+                    continue;
+                }
+
                 if (c == '\'' && !inDoubleQuote) {
                     inSingleQuote = !inSingleQuote;
                     continue;
@@ -63,18 +71,17 @@ public class Main {
                     if (current.length() > 0) {
                         tokens.add(current.toString());
                         current.setLength(0);
-                }
+                    }
                 } else {
                     current.append(c);
                 }
             }
 
             if (current.length() > 0) {
-    tokens.add(current.toString());
-}
+                tokens.add(current.toString());
+            }
 
-            String[] parts = tokens.toArray(new String[0]);
-
+            String[] parts = tokens.toArray(new String[0]);c
             // exit
             if (parts[0].equals("exit")) {
                 break;
