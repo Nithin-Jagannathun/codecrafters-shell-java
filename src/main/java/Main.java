@@ -3,6 +3,24 @@ import java.io.*;
 
 public class Main {
 
+    // Helper class to track background jobs
+    static class Job {
+        int id;
+        long pid;
+        String command;
+        Process process;
+
+        Job(int id, long pid, String command, Process process) {
+            this.id = id;
+            this.pid = pid;
+            this.command = command;
+            this.process = process;
+        }
+    }
+
+    // List to keep track of active background jobs
+    static List<Job> activeJobs = new ArrayList<>();
+
     static File findExecutable(String cmd) {
         String path = System.getenv("PATH");
         String[] directories = path.split(":");
@@ -16,6 +34,34 @@ public class Main {
         }
 
         return null;
+    }
+
+    // Find the smallest available job ID number starting from 1
+    static int getNextJobId() {
+        int id = 1;
+        while (true) {
+            boolean taken = false;
+            for (Job j : activeJobs) {
+                if (j.id == id) {
+                    taken = true;
+                    break;
+                }
+            }
+            if (!taken) return id;
+            id++;
+        }
+    }
+
+    // Checks background jobs and reaps finished ones before presenting the prompt
+    static void reapBackgroundJobs() {
+        Iterator<Job> iterator = activeJobs.iterator();
+        while (iterator.hasNext()) {
+            Job job = iterator.next();
+            if (!job.process.isAlive()) {
+                System.out.println("[" + job.id + "]+  Done                    " + job.command);
+                iterator.remove();
+            }
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -32,8 +78,11 @@ public class Main {
         builtins.add("jobs");
 
         while (true) {
+            // Reap any finished jobs right before prompting the user
+            reapBackgroundJobs();
 
             System.out.print("$ ");
+            if (!sc.hasNextLine()) break;
 
             String command = sc.nextLine();
 
@@ -50,7 +99,6 @@ public class Main {
             for (int i = 0; i < command.length(); i++) {
                 char c = command.charAt(i);
 
-                // Inside single quotes: everything is literal
                 if (inSingleQuote) {
                     if (c == '\'') {
                         inSingleQuote = false;
@@ -60,13 +108,10 @@ public class Main {
                     continue;
                 }
 
-                // Inside double quotes
                 if (inDoubleQuote) {
-
                     if (c == '\\') {
                         if (i + 1 < command.length()) {
                             char next = command.charAt(i + 1);
-
                             if (next == '"' || next == '\\') {
                                 current.append(next);
                                 i++;
@@ -88,7 +133,6 @@ public class Main {
                     continue;
                 }
 
-                // Outside quotes
                 if (c == '\\') {
                     if (i + 1 < command.length()) {
                         current.append(command.charAt(++i));
@@ -121,11 +165,10 @@ public class Main {
 
             String[] parts = tokens.toArray(new String[0]);
 
-            // Check if the command should run in the background
+            // Track background running intent
             boolean isBackground = false;
             if (parts.length > 0 && parts[parts.length - 1].equals("&")) {
                 isBackground = true;
-                // Exclude the '&' from the executable parts
                 parts = Arrays.copyOf(parts, parts.length - 1);
             }
 
@@ -154,7 +197,6 @@ public class Main {
                 }
             }
 
-            // Determine the true end of the command arguments before redirection symbols
             int end = parts.length;
             if (stdoutRedirect != -1 && stderrRedirect != -1) {
                 end = Math.min(stdoutRedirect, stderrRedirect);
@@ -171,7 +213,6 @@ public class Main {
 
             // echo
             else if (parts[0].equals("echo")) {
-
                 PrintStream out = System.out;
 
                 if (stdoutRedirect != -1) {
@@ -225,14 +266,16 @@ public class Main {
                 }
             }
 
-            // jobs
+            // jobs Builtin Implementation
             else if (parts[0].equals("jobs")) {
-                continue;
+                for (Job job : activeJobs) {
+                    String status = job.process.isAlive() ? "Running" : "Done";
+                    System.out.println("[" + job.id + "]+  " + status + "                  " + job.command);
+                }
             }
 
             // type
             else if (parts[0].equals("type")) {
-
                 if (parts.length < 2)
                     continue;
 
@@ -242,9 +285,7 @@ public class Main {
                     System.out.println(cmd + " is a shell builtin");
                 }
                 else {
-
                     File executable = findExecutable(cmd);
-
                     if (executable != null) {
                         System.out.println(cmd + " is " + executable.getAbsolutePath());
                     }
@@ -256,23 +297,19 @@ public class Main {
 
             // external command
             else {
-
                 File executable = findExecutable(parts[0]);
 
                 if (executable == null) {
                     System.out.println(parts[0] + ": command not found");
                 }
                 else {
-
                     List<String> cmd = new ArrayList<>();
-
                     for (int i = 0; i < end; i++) {
                         cmd.add(parts[i]);
                     }
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
-
                     pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
 
                     if (stdoutRedirect != -1) {
@@ -304,16 +341,18 @@ public class Main {
                     Process process = pb.start();
                     
                     if (isBackground) {
-                        // Print background job info sequence: [JOB_NUMBER] PID
-                        System.out.println("[1] " + process.pid());
+                        int jobId = getNextJobId();
+                        long pid = process.pid();
+                        
+                        // Register background job tracker entry
+                        activeJobs.add(new Job(jobId, pid, command.replace(" &", ""), process));
+                        System.out.println("[" + jobId + "] " + pid);
                     } else {
-                        // Wait only if it's NOT a background job
                         process.waitFor();
                     }
                 }
             }
         }
-
         sc.close();
     }
 }
