@@ -251,10 +251,11 @@ public class Main {
             // jobs Builtin Implementation
             else if (parts[0].equals("jobs")) {
                 int totalJobs = activeJobs.size();
+                List<Job> toRemove = new ArrayList<>();
+
                 for (int i = 0; i < totalJobs; i++) {
                     Job job = activeJobs.get(i);
                     
-                    // Determine the marker (+ for most recent, - for second most recent)
                     String marker = " ";
                     if (i == totalJobs - 1) {
                         marker = "+";
@@ -262,8 +263,15 @@ public class Main {
                         marker = "-";
                     }
                     
-                    System.out.println("[" + job.id + "] " + marker + " Running " + job.command + " &");
+                    if (job.process.isAlive()) {
+                        System.out.println("[" + job.id + "] " + marker + " Running " + job.command + " &");
+                    } else {
+                        System.out.println("[" + job.id + "] " + marker + " Done " + job.command);
+                        toRemove.add(job);
+                    }
                 }
+                // Safely clear out completed jobs so they don't persist on future calls
+                activeJobs.removeAll(toRemove);
             }
 
             // type
