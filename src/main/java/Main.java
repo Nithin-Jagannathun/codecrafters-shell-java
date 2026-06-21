@@ -68,8 +68,10 @@ public class Main {
                 if (parts.length < 2) continue;
 
                 File newDir = null;
-
-                if (parts[1].startsWith("/")) {
+                if (parts[1].equals("~")) {
+                    newDir = new File(System.getenv("HOME"));
+                }
+                else if (parts[1].startsWith("/")) {
                     newDir = new File(parts[1]);
                 }
                 else {
