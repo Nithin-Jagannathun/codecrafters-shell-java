@@ -122,15 +122,25 @@ public class Main {
 
             int stdoutRedirect = -1;
             int stderrRedirect = -1;
+            boolean appendStdout = false;
+            boolean appendStderr = false;
 
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     stdoutRedirect = i;
-                }
-                else if (parts[i].equals("2>")) {
+                    appendStdout = false;
+                } else if (parts[i].equals(">>") || parts[i].equals("1>>")) {
+                    stdoutRedirect = i;
+                    appendStdout = true;
+                } else if (parts[i].equals("2>")) {
                     stderrRedirect = i;
+                    appendStderr = false;
+                } else if (parts[i].equals("2>>")) {
+                    stderrRedirect = i;
+                    appendStderr = true;
                 }
             }
+
             // exit
             if (parts[0].equals("exit")) {
                 break;
@@ -142,15 +152,18 @@ public class Main {
                 PrintStream out = System.out;
 
                 if (stdoutRedirect != -1) {
-                    out = new PrintStream(new FileOutputStream(parts[stdoutRedirect + 1]));
+                    out = new PrintStream(new FileOutputStream(parts[stdoutRedirect + 1], appendStdout));
                 }
 
                 int end = parts.length;
 
-                if (stdoutRedirect != -1)
+                if (stdoutRedirect != -1 && stderrRedirect != -1) {
+                    end = Math.min(stdoutRedirect, stderrRedirect);
+                } else if (stdoutRedirect != -1) {
                     end = stdoutRedirect;
-                else if (stderrRedirect != -1)
+                } else if (stderrRedirect != -1) {
                     end = stderrRedirect;
+                }
 
                 for (int i = 1; i < end; i++) {
                     if (i > 1) out.print(" ");
@@ -185,9 +198,9 @@ public class Main {
 
                 newDir = newDir.getCanonicalFile();
                 if (newDir.exists() && newDir.isDirectory()) {
-                currentDirectory = newDir;
+                    currentDirectory = newDir;
                 } else {
-                System.out.println("cd: " + parts[1] + ": No such file or directory");
+                    System.out.println("cd: " + parts[1] + ": No such file or directory");
                 }
             }
 
@@ -228,34 +241,48 @@ public class Main {
                     List<String> cmd = new ArrayList<>();
 
                     int end = parts.length;
-
-                    if (stdoutRedirect != -1)
+                    
+                    if (stdoutRedirect != -1 && stderrRedirect != -1) {
+                        end = Math.min(stdoutRedirect, stderrRedirect);
+                    } else if (stdoutRedirect != -1) {
                         end = stdoutRedirect;
-                    else if (stderrRedirect != -1)
+                    } else if (stderrRedirect != -1) {
                         end = stderrRedirect;
-                    for (int i = 0; i < end; i++)
+                    }
+                    
+                    for (int i = 0; i < end; i++) {
                         cmd.add(parts[i]);
+                    }
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
 
+                    // Handle stdout redirection
                     if (stdoutRedirect != -1) {
-                        pb.redirectOutput(new File(parts[stdoutRedirect + 1]));
+                        File outFile = new File(parts[stdoutRedirect + 1]);
+                        if (appendStdout) {
+                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
+                        } else {
+                            pb.redirectOutput(ProcessBuilder.Redirect.to(outFile));
+                        }
+                    } else {
+                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
 
+                    // Handle stderr redirection
                     if (stderrRedirect != -1) {
-                        pb.redirectError(new File(parts[stderrRedirect + 1]));
-                    }
-
-                    if (stdoutRedirect == -1 && stderrRedirect == -1) {
-                        pb.inheritIO();
-                    }
-                    else if (stdoutRedirect != -1 && stderrRedirect == -1) {
+                        File errFile = new File(parts[stderrRedirect + 1]);
+                        if (appendStderr) {
+                            pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
+                        } else {
+                            pb.redirectError(ProcessBuilder.Redirect.to(errFile));
+                        }
+                    } else {
                         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                     }
-                    else if (stdoutRedirect == -1 && stderrRedirect != -1) {
-                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                    }       
+                    
+                    // Always inherit standard input
+                    pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
 
                     Process process = pb.start();
                     process.waitFor();
