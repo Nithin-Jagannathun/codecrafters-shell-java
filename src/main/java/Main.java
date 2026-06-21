@@ -3,7 +3,6 @@ import java.io.*;
 
 public class Main {
 
-    // Helper class to track background jobs
     static class Job {
         int id;
         long pid;
@@ -18,7 +17,6 @@ public class Main {
         }
     }
 
-    // List to keep track of active background jobs
     static List<Job> activeJobs = new ArrayList<>();
 
     static File findExecutable(String cmd) {
@@ -36,7 +34,6 @@ public class Main {
         return null;
     }
 
-    // Find the smallest available job ID number starting from 1
     static int getNextJobId() {
         int id = 1;
         while (true) {
@@ -49,18 +46,6 @@ public class Main {
             }
             if (!taken) return id;
             id++;
-        }
-    }
-
-    // Checks background jobs and reaps finished ones before presenting the prompt
-    static void reapBackgroundJobs() {
-        Iterator<Job> iterator = activeJobs.iterator();
-        while (iterator.hasNext()) {
-            Job job = iterator.next();
-            if (!job.process.isAlive()) {
-                System.out.println("[" + job.id + "]+  Done                    " + job.command);
-                iterator.remove();
-            }
         }
     }
 
@@ -78,8 +63,6 @@ public class Main {
         builtins.add("jobs");
 
         while (true) {
-            // Reap any finished jobs right before prompting the user
-            reapBackgroundJobs();
 
             System.out.print("$ ");
             if (!sc.hasNextLine()) break;
@@ -165,7 +148,6 @@ public class Main {
 
             String[] parts = tokens.toArray(new String[0]);
 
-            // Track background running intent
             boolean isBackground = false;
             if (parts.length > 0 && parts[parts.length - 1].equals("&")) {
                 isBackground = true;
@@ -268,9 +250,19 @@ public class Main {
 
             // jobs Builtin Implementation
             else if (parts[0].equals("jobs")) {
-                for (Job job : activeJobs) {
-                    String status = job.process.isAlive() ? "Running" : "Done";
-                    System.out.println("[" + job.id + "]+  " + status + "                  " + job.command);
+                int totalJobs = activeJobs.size();
+                for (int i = 0; i < totalJobs; i++) {
+                    Job job = activeJobs.get(i);
+                    
+                    // Determine the marker (+ for most recent, - for second most recent)
+                    String marker = " ";
+                    if (i == totalJobs - 1) {
+                        marker = "+";
+                    } else if (i == totalJobs - 2) {
+                        marker = "-";
+                    }
+                    
+                    System.out.println("[" + job.id + "] " + marker + " Running " + job.command + " &");
                 }
             }
 
@@ -344,8 +336,7 @@ public class Main {
                         int jobId = getNextJobId();
                         long pid = process.pid();
                         
-                        // Register background job tracker entry
-                        activeJobs.add(new Job(jobId, pid, command.replace(" &", ""), process));
+                        activeJobs.add(new Job(jobId, pid, String.join(" ", cmd), process));
                         System.out.println("[" + jobId + "] " + pid);
                     } else {
                         process.waitFor();
