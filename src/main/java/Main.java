@@ -50,7 +50,7 @@ public class Main {
                         p.waitFor();
                     } 
                     else {
-                        System.out.println(parts[0]  + ": not found");
+                        System.out.println(parts[0]  + ": command not found");
                     }
                 }
             }
