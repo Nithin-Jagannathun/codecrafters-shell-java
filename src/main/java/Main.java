@@ -67,13 +67,20 @@ public class Main {
             else if (parts[0].equals("cd")) {
                 if (parts.length < 2) continue;
 
-                File newDir = new File(parts[1]);
+                File newDir = null;
 
-                if (newDir.exists() && newDir.isDirectory()) {
-                    currentDirectory = newDir.getCanonicalFile();
+                if (parts[1].startsWith("/")) {
+                    newDir = new File(parts[1]);
                 }
                 else {
-                    System.out.println("cd: " + parts[1] + ": No such file or directory");
+                    newDir = new File(currentDirectory, parts[1]);
+                }
+
+                newDir = newDir.getCanonicalFile();
+                if (newDir.exists() && newDir.isDirectory()) {
+                currentDirectory = newDir;
+                } else {
+                System.out.println("cd: " + parts[1] + ": No such file or directory");
                 }
             }
 
