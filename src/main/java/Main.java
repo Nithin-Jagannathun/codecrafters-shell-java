@@ -81,7 +81,7 @@ public class Main {
                 tokens.add(current.toString());
             }
 
-            String[] parts = tokens.toArray(new String[0]);c
+            String[] parts = tokens.toArray(new String[0]);
             // exit
             if (parts[0].equals("exit")) {
                 break;
