@@ -29,6 +29,7 @@ public class Main {
         builtins.add("type");
         builtins.add("pwd");
         builtins.add("cd");
+        builtins.add("jobs"); // Added jobs to builtins registry
 
         while (true) {
 
@@ -125,7 +126,6 @@ public class Main {
             boolean appendStdout = false;
             boolean appendStderr = false;
 
-            // Added parsing for 2>> operator
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     stdoutRedirect = i;
@@ -171,7 +171,6 @@ public class Main {
                 if (stderrRedirect != -1) {
                     File errFile = new File(parts[stderrRedirect + 1]);
                     if (errFile.getParentFile() != null) errFile.getParentFile().mkdirs();
-                    // Respect the appendStderr flag when testing/truncating errors file
                     new FileOutputStream(errFile, appendStderr).close(); 
                 }
 
@@ -212,6 +211,12 @@ public class Main {
                 } else {
                     System.out.println("cd: " + parts[1] + ": No such file or directory");
                 }
+            }
+
+            // jobs
+            else if (parts[0].equals("jobs")) {
+                // Empty implementation for this stage as requested
+                continue;
             }
 
             // type
@@ -272,7 +277,6 @@ public class Main {
                         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
 
-                    // Added append/overwrite logic for ProcessBuilder error stream
                     if (stderrRedirect != -1) {
                         File errFile = new File(parts[stderrRedirect + 1]);
                         if (errFile.getParentFile() != null) errFile.getParentFile().mkdirs();
