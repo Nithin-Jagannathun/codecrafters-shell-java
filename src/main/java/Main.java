@@ -122,12 +122,16 @@ public class Main {
 
             int stdoutRedirect = -1;
             int stderrRedirect = -1;
+            boolean appendStdout = false;
 
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     stdoutRedirect = i;
-                }
-                else if (parts[i].equals("2>")) {
+                    appendStdout = false;
+                } else if (parts[i].equals(">>") || parts[i].equals("1>>")) {
+                    stdoutRedirect = i;
+                    appendStdout = true;
+                } else if (parts[i].equals("2>")) {
                     stderrRedirect = i;
                 }
             }
@@ -155,14 +159,14 @@ public class Main {
                 if (stdoutRedirect != -1) {
                     File outFile = new File(parts[stdoutRedirect + 1]);
                     if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
-                    out = new PrintStream(new FileOutputStream(outFile));
+                    // Pass the appendStdout flag to FileOutputStream
+                    out = new PrintStream(new FileOutputStream(outFile, appendStdout));
                 }
 
-                // Even though echo doesn't produce stderr, standard shell behavior creates the empty file
                 if (stderrRedirect != -1) {
                     File errFile = new File(parts[stderrRedirect + 1]);
                     if (errFile.getParentFile() != null) errFile.getParentFile().mkdirs();
-                    new FileOutputStream(errFile).close(); // Creates the empty file
+                    new FileOutputStream(errFile).close(); 
                 }
 
                 for (int i = 1; i < end; i++) {
@@ -247,13 +251,18 @@ public class Main {
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
 
-                    // Always inherit standard input
                     pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
 
                     if (stdoutRedirect != -1) {
                         File outFile = new File(parts[stdoutRedirect + 1]);
                         if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
-                        pb.redirectOutput(outFile);
+                        
+                        // Handle standard output appending vs overwriting
+                        if (appendStdout) {
+                            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
+                        } else {
+                            pb.redirectOutput(outFile);
+                        }
                     } else {
                         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                     }
