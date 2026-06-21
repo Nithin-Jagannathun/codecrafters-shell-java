@@ -40,7 +40,31 @@ public class Main {
                 continue;
             }
 
-            String[] parts = command.split(" ");
+            ArrayList<String> tokens = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            boolean inSingleQuote = false;
+
+            for (int i = 0; i < command.length(); i++) {
+                char c = command.charAt(i);
+
+                if (c == '\'') {
+                    inSingleQuote = !inSingleQuote;
+                }
+                else if (c == ' ' && !inSingleQuote) {
+                if (current.length() > 0) {
+                    tokens.add(current.toString());
+                    current.setLength(0);
+                }
+                }
+                else {
+                    current.append(c);
+                }
+            }
+
+            if (current.length() > 0)
+            tokens.add(current.toString());
+
+            String[] parts = tokens.toArray(new String[0]);
 
             // exit
             if (parts[0].equals("exit")) {
@@ -50,11 +74,11 @@ public class Main {
             // echo
             else if (parts[0].equals("echo")) {
 
-                if (parts.length > 1) {
-                    System.out.println(command.substring(5));
-                } else {
-                    System.out.println();
+                for (int i = 1; i < parts.length; i++) {
+                    if (i > 1) System.out.print(" ");
+                    System.out.print(parts[i]);
                 }
+                System.out.println();
 
             }
 
@@ -119,12 +143,7 @@ public class Main {
                     System.out.println(parts[0] + ": command not found");
                 }
                 else {
-                    List<String> cmd = new ArrayList<>();
-                    cmd.add(parts[0]);   // program name only
-
-                    for (int i = 1; i < parts.length; i++) {
-                        cmd.add(parts[i]);
-                    }
+                    List<String> cmd = new ArrayList<>(Arrays.asList(parts));
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
