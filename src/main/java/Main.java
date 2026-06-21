@@ -29,7 +29,7 @@ public class Main {
         builtins.add("type");
         builtins.add("pwd");
         builtins.add("cd");
-        builtins.add("jobs"); // Added jobs to builtins registry
+        builtins.add("jobs");
 
         while (true) {
 
@@ -120,6 +120,18 @@ public class Main {
                 tokens.add(current.toString());
 
             String[] parts = tokens.toArray(new String[0]);
+
+            // Check if the command should run in the background
+            boolean isBackground = false;
+            if (parts.length > 0 && parts[parts.length - 1].equals("&")) {
+                isBackground = true;
+                // Exclude the '&' from the executable parts
+                parts = Arrays.copyOf(parts, parts.length - 1);
+            }
+
+            if (parts.length == 0) {
+                continue;
+            }
 
             int stdoutRedirect = -1;
             int stderrRedirect = -1;
@@ -215,7 +227,6 @@ public class Main {
 
             // jobs
             else if (parts[0].equals("jobs")) {
-                // Empty implementation for this stage as requested
                 continue;
             }
 
@@ -291,7 +302,14 @@ public class Main {
                     }
 
                     Process process = pb.start();
-                    process.waitFor();
+                    
+                    if (isBackground) {
+                        // Print background job info sequence: [JOB_NUMBER] PID
+                        System.out.println("[1] " + process.pid());
+                    } else {
+                        // Wait only if it's NOT a background job
+                        process.waitFor();
+                    }
                 }
             }
         }
