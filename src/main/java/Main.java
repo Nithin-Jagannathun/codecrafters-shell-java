@@ -88,15 +88,15 @@ public class Main {
                     System.out.println(parts[0] + ": command not found");
                 }
                 else {
-
                     List<String> cmd = new ArrayList<>();
-                    cmd.add(executable.getAbsolutePath());
+                    cmd.add(parts[0]);   // program name only
 
                     for (int i = 1; i < parts.length; i++) {
                         cmd.add(parts[i]);
                     }
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
+                    pb.directory(executable.getParentFile());
                     pb.inheritIO();
 
                     Process process = pb.start();
