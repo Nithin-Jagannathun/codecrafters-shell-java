@@ -120,12 +120,15 @@ public class Main {
 
             String[] parts = tokens.toArray(new String[0]);
 
-            int redirectIndex = -1;
+            int stdoutRedirect = -1;
+            int stderrRedirect = -1;
 
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
-                    redirectIndex = i;
-                    break;
+                    stdoutRedirect = i;
+                }
+                else if (parts[i].equals("2>")) {
+                    stderrRedirect = i;
                 }
             }
             // exit
@@ -138,19 +141,26 @@ public class Main {
 
                 PrintStream out = System.out;
 
-                if (redirectIndex != -1) {
-                    out = new PrintStream(new FileOutputStream(parts[redirectIndex + 1]));
+                if (stdoutRedirect != -1) {
+                    out = new PrintStream(new FileOutputStream(parts[stdoutRedirect + 1]));
                 }
 
-                for (int i = 1; i < (redirectIndex == -1 ? parts.length : redirectIndex); i++) {
+                int end = parts.length;
+
+                if (stdoutRedirect != -1)
+                    end = stdoutRedirect;
+                else if (stderrRedirect != -1)
+                    end = stderrRedirect;
+
+                for (int i = 1; i < end; i++) {
                     if (i > 1) out.print(" ");
                     out.print(parts[i]);
                 }
 
                 out.println();
 
-                if (out != System.out) out.close();
-
+                if (out != System.out)
+                    out.close();
             }
 
             // pwd
@@ -217,20 +227,35 @@ public class Main {
 
                     List<String> cmd = new ArrayList<>();
 
-                    int end = redirectIndex == -1 ? parts.length : redirectIndex;
+                    int end = parts.length;
 
+                    if (stdoutRedirect != -1)
+                        end = stdoutRedirect;
+                    else if (stderrRedirect != -1)
+                        end = stderrRedirect;
                     for (int i = 0; i < end; i++)
                         cmd.add(parts[i]);
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     pb.directory(currentDirectory);
 
-                    if (redirectIndex != -1) {
-                        pb.redirectOutput(new File(parts[redirectIndex + 1]));
-                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-                    } else {
+                    if (stdoutRedirect != -1) {
+                        pb.redirectOutput(new File(parts[stdoutRedirect + 1]));
+                    }
+
+                    if (stderrRedirect != -1) {
+                        pb.redirectError(new File(parts[stderrRedirect + 1]));
+                    }
+
+                    if (stdoutRedirect == -1 && stderrRedirect == -1) {
                         pb.inheritIO();
                     }
+                    else if (stdoutRedirect != -1 && stderrRedirect == -1) {
+                        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                    }
+                    else if (stdoutRedirect == -1 && stderrRedirect != -1) {
+                        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                    }       
 
                     Process process = pb.start();
                     process.waitFor();
