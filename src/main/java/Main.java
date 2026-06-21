@@ -49,6 +49,30 @@ public class Main {
         }
     }
 
+    // Helper method to look for completed jobs, print them, and remove them
+    static void checkAndReapJobs() {
+        int totalJobs = activeJobs.size();
+        List<Job> toRemove = new ArrayList<>();
+
+        for (int i = 0; i < totalJobs; i++) {
+            Job job = activeJobs.get(i);
+            
+            if (!job.process.isAlive()) {
+                String marker = " ";
+                if (i == totalJobs - 1) {
+                    marker = "+";
+                } else if (i == totalJobs - 2) {
+                    marker = "-";
+                }
+                
+                System.out.println("[" + job.id + "] " + marker + " Done " + job.command);
+                toRemove.add(job);
+            }
+        }
+        
+        activeJobs.removeAll(toRemove);
+    }
+
     public static void main(String[] args) throws Exception {
 
         Scanner sc = new Scanner(System.in);
@@ -63,6 +87,8 @@ public class Main {
         builtins.add("jobs");
 
         while (true) {
+            // 1. Check for finished background jobs before printing the prompt
+            checkAndReapJobs();
 
             System.out.print("$ ");
             if (!sc.hasNextLine()) break;
@@ -264,13 +290,13 @@ public class Main {
                     }
                     
                     if (job.process.isAlive()) {
-                        System.out.println("[" + job.id + "] " + marker + " Running " + job.command + " &");
+                        System.out.println("\[" + job.id + "\] " + marker + " Running " + job.command + " &");
                     } else {
-                        System.out.println("[" + job.id + "] " + marker + " Done " + job.command);
+                        System.out.println("\[" + job.id + "\] " + marker + " Done " + job.command);
                         toRemove.add(job);
                     }
                 }
-                // Safely clear out completed jobs so they don't persist on future calls
+                
                 activeJobs.removeAll(toRemove);
             }
 
