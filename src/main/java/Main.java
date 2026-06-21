@@ -42,27 +42,36 @@ public class Main {
 
             ArrayList<String> tokens = new ArrayList<>();
             StringBuilder current = new StringBuilder();
+
             boolean inSingleQuote = false;
+            boolean inDoubleQuote = false;
 
             for (int i = 0; i < command.length(); i++) {
                 char c = command.charAt(i);
 
-                if (c == '\'') {
+                if (c == '\'' && !inDoubleQuote) {
                     inSingleQuote = !inSingleQuote;
+                    continue;
                 }
-                else if (c == ' ' && !inSingleQuote) {
-                if (current.length() > 0) {
-                    tokens.add(current.toString());
-                    current.setLength(0);
+
+                if (c == '"' && !inSingleQuote) {
+                    inDoubleQuote = !inDoubleQuote;
+                    continue;
                 }
+
+                if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
+                    if (current.length() > 0) {
+                        tokens.add(current.toString());
+                        current.setLength(0);
                 }
-                else {
+                } else {
                     current.append(c);
                 }
             }
 
-            if (current.length() > 0)
-            tokens.add(current.toString());
+            if (current.length() > 0) {
+    tokens.add(current.toString());
+}
 
             String[] parts = tokens.toArray(new String[0]);
 
